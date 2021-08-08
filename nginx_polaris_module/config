@@ -1,0 +1,16 @@
+ngx_addon_name=ngx_http_upstream_polaris_module
+HTTP_MODULES="$HTTP_MODULES ngx_http_upstream_polaris_module "
+STREAM_MODULES="$STREAM_MODULES ngx_stream_upstream_polaris_module "
+
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_upstream_polaris_module.cpp \
+                                $ngx_addon_dir/ngx_http_upstream_polaris_wrapper.cpp \
+                                $ngx_addon_dir/ngx_stream_upstream_polaris_module.cpp"
+
+#header files
+NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_addon_dir/ngx_http_upstream_polaris_module.h"
+
+# includes 
+CORE_INCS="$CORE_INCS $ngx_addon_dir"
+
+# libs 需要支持c++ 库
+CORE_LIBS="$CORE_LIBS -lstdc++"
