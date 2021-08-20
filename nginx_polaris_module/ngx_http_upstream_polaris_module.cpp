@@ -3,6 +3,8 @@
  * author: jasonygyang@tencent.com
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -294,7 +296,9 @@ static void ngx_http_upstream_free_polaris_peer(ngx_peer_connection_t *pc, void 
       vector<string> vec;
       split_string(fail_report_status, vec, delimiter);
       for (size_t i = 0; i < vec.size(); ++i) {
-        if (vec[i] != "" && vec[i] == std::to_string(bp->request->headers_out.status)) {
+        char buffer[8];
+        snprintf(buffer, sizeof(buffer), "%lu", bp->request->headers_out.status);
+        if (vec[i] != "" && vec[i] == std::string(buffer)) {
           ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "fail status matched, report fail, code: %s", vec[i].c_str());
           ctx->polaris_ret = -1;
           break;
