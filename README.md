@@ -5,6 +5,7 @@
 * [Supported Nginx Version](#supported-nginx-version)
 * [Installation Instructions](#installation-instructions)
 * [Features And Usage](#features-and-usages)
+* [Directives Explanation](#directives-explanation)
 
 ---
 
@@ -64,4 +65,30 @@ make install
 ```
 
 ## Features And Usages
+First you need to create a name by Polaris Server, we will take `Test:test.servicename` as an example, in which `Test` represents Polaris namespace and `test.servicename` represents Polaris name.
+### L4 and L7 load balance.
+Add below to your nginx configuration under http or stream namespace, L4 or L7 reverse proxy is ready to go and you are no longer bothered by hardcoded ip. 
+```
+upstream test_upstream {
+    polaris service_namespace=Test service_name=test.servicename timeout=1.5;
+    server 10.223.130.162:6000;
+}
+```
+You can also use nginx native variable for runtime configuration like below. ***This feature is supported only in L4 load balance***
+```
+upstream test_upstream {
+    polaris service_namespace=$http_namespace service_name=$http_name timeout=1.5;
+    server 10.223.130.162:6000;
+}
+```
+### Business-Level Fail Status Report
+If you have already read the doc of [PolarisCpp](https://github.com/PolarisMesh/polaris-cpp), you will find out that Polaris has circuit breaker feature which relies on the business-level report on failed requests. Nginx-polaris has already report failed requests which are led by network error. In order to make it better, Nginx-polaris also supports business-level failed requests report, this feature is only activated in L4 load balance mode and developer needs to configure failed status code. For the configuration below, polaris Nginx module will report fail when backend server returns ***502*** or ***405*** to Nginx.
+```
+upstream test_upstream {
+    polaris service_namespace=Test service_name=test.servicename timeout=1.5 fail_report=502,405;
+    server 10.223.130.162:6000;
+}
+```
+
+## Directives Explanation
 
