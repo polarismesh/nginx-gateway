@@ -89,6 +89,70 @@ upstream test_upstream {
     server 10.223.130.162:6000;
 }
 ```
+### Session Sticky
+Nginx-polaris module supports various load balance mode. Developer can use Nginx-polaris module to achieve session sticky. Add configuration like below, session sticky is achieved and all the requests from same remote_addr will be proxied to the same backed server.
+```
+upstream test_upstream {
+    polaris service_namespace=Test service_name=test.servicename timeout=1.5 mode=2 key=$remote_addr;
+    server 10.223.130.162:6000;
+}
+```
+### Dynamic Route
+This feature is only supported in L4 load balance.
+1. You need to learn about what dynamic route is from [PolarisCpp](https://github.com/PolarisMesh/polaris-cpp) first.
+2. Tured on dynamic route by set ***dr=on***.
+3. Set ***metadata*** key-value list to filter the value specified by http header, url arguments or cookies.
+4. For example, if you configured dynamic route rules on Polaris Console like below:
+![image](https://user-images.githubusercontent.com/7314436/130551250-c4b52235-59c6-456d-832b-74263f6a4ebd.png)
+And you add upstream configuration like below:
+```
+upstream test_upstream {
+    polaris service_namespace=Test service_name=polaris.demo timeout=1.5 dr=on metadata=[key1,key2];
+    server 127.0.0.1:8000;
+}
+```
+For all three kinds of requests like below, will be routed to instances which have ***test:true*** metadata.
+```
+POST /recv?key1=check HTTP/1.1
+Host: 127.0.0.1
+{
+}
+```
+```
+POST /recv HTTP/1.1
+key1: check
+Host: 127.0.0.1
+{
+}
+```
+```
+POST /recv HTTP/1.1
+Cookie: key1=check; x_host_key=176d798f8b4-c8c30f5e7d8ebe8a1bab15661f32730ecfb156e5;
+Host: 127.0.0.1
+{
+}
+```
+Likewise, for all three kinds of requests like below, will be routed to instances which have ***test:false*** metadata.
+```
+POST /recv?key2=nonce HTTP/1.1
+Host: 127.0.0.1
+{
+}
+```
+```
+POST /recv HTTP/1.1
+key2: nonce
+Host: 127.0.0.1
+{
+}
+```
+```
+POST /recv HTTP/1.1
+Cookie: key2=nonce; x_host_key=176d798f8b4-c8c30f5e7d8ebe8a1bab15661f32730ecfb156e5;
+Host: 127.0.0.1
+{
+}
+```
 
 ## Directives Explanation
 
