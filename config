@@ -1,0 +1,21 @@
+#this easy for add some source or lib to nginx build
+
+ngx_addon_name=`basename $ngx_addon_dir`
+
+
+# all header in $ngx_addon_dir
+for header in `find $ngx_addon_dir -regex ".*\.\(h\|hpp\\)$"`
+do
+    NGX_ADDON_DEPS="$NGX_ADDON_DEPS $header"
+done
+
+CORE_INCS="$CORE_INCS $ngx_addon_dir/include"
+
+for lib in `find $ngx_addon_dir/slib -regex ".*\.a$"`
+do
+    CORE_LIBS="$CORE_LIBS $lib"
+done
+
+CORE_LIBS="$CORE_LIBS -lm -pthread"
+
+
