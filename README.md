@@ -82,6 +82,7 @@ upstream test_upstream {
 }
 ```
 ### Business-Level Fail Status Report
+***This feature is only supported in L4 load balance.***
 If you have already read the doc of [PolarisCpp](https://github.com/PolarisMesh/polaris-cpp), you will find out that Polaris has circuit breaker feature which relies on the business-level report on failed requests. Nginx-polaris has already report failed requests which are led by network error. In order to make it better, Nginx-polaris also supports business-level failed requests report, this feature is only activated in L4 load balance mode and developer needs to configure failed status code. For the configuration below, polaris Nginx module will report fail when backend server returns ***502*** or ***405*** to Nginx.
 ```
 upstream test_upstream {
@@ -98,7 +99,7 @@ upstream test_upstream {
 }
 ```
 ### Dynamic Route
-This feature is only supported in L4 load balance.
+***This feature is only supported in L4 load balance.***
 1. You need to learn about what dynamic route is from [PolarisCpp](https://github.com/PolarisMesh/polaris-cpp) first.
 2. Tured on dynamic route by set ***dr=on***.
 3. Set ***metadata*** key-value list to filter the value specified by http header, url arguments or cookies.
@@ -153,6 +154,29 @@ Host: 127.0.0.1
 {
 }
 ```
-
+### Metadata Route
+***This feature is only supported in L4 load balance.***
+Metadata route is used when user want to control requests to be routed to certain instance which has certain metadata.
+1. Turned on metadata route by set ***mr=on***.
+2. Set ***metadata*** key-value list to filter the value specified by http header, url arguments or cookies.
+3. Specify metadata route fail over mode.
+For example, if you add upstream configuration like below, all requests will be routed to instances which match the ***key2:value*** or ***key3:value*** in their header, url arguments or cookies.
+```
+upstream test_upstream {
+    polaris service_namespace=Test service_name=polaris.demo timeout=1.5 mr=on metadata=[key2,key3];
+    server 127.0.0.1:8000;
+}
+```
 ## Directives Explanation
+| Parameter       | Necessary     | Comment     |  Default |
+| :------------- | :----------: | -----------: | :------------- |
+|  service_namespace | Y  | Polaris namespace    |  ""    | 
+|  service_name   | Y | Polaris service name| "" |
+|  timeout   | N | Timeout for get rs from polaris name | 1 seconds |
+|  mode   | N| Load balance algorithm| 0 |
+|  key   |  N | Hash key when mode equals 2 or 3 | "" |
+|  dr   | N | Switch for dynamic route | off |
+|  mr   | N | Switch for metadata route| off |
+|  mr_mode   | N | metadata route fail over mode | 0 |
+|  fail_report   | N | Business-level fail report status code | "" |
 
