@@ -224,6 +224,7 @@ static ngx_int_t ngx_http_upstream_init_polaris_peer(ngx_http_request_t *r,
 
     memset(ctx, 0, sizeof(ngx_http_upstream_polaris_ctx_t));
     ngx_http_set_ctx(r, ctx, ngx_http_upstream_polaris_module);
+    dp->ctx = ctx;
   }
 
   if (polaris_init_params(dcf, r, ctx) != NGX_OK) {
@@ -247,8 +248,7 @@ static ngx_int_t ngx_http_upstream_get_polaris_peer(ngx_peer_connection_t *pc, v
   pc->cached     = 0;
   pc->connection = NULL;
 
-  ngx_http_upstream_polaris_ctx_t *ctx = reinterpret_cast<ngx_http_upstream_polaris_ctx_t *>(
-      ngx_http_get_module_ctx(r, ngx_http_upstream_polaris_module));
+  ngx_http_upstream_polaris_ctx_t *ctx = bp->ctx;
 
   int ret = polaris_get_addr(ctx);
 
@@ -280,8 +280,7 @@ static void ngx_http_upstream_free_polaris_peer(ngx_peer_connection_t *pc, void 
 
   ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "free polaris peer state:%d", state);
 
-  ngx_http_upstream_polaris_ctx_t *ctx = reinterpret_cast<ngx_http_upstream_polaris_ctx_t *>(
-      ngx_http_get_module_ctx(bp->request, ngx_http_upstream_polaris_module));
+  ngx_http_upstream_polaris_ctx_t *ctx = bp->ctx;
 
   ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "free polaris peer ret status code: %d",
     bp->request->headers_out.status);
