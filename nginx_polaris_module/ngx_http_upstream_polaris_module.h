@@ -62,6 +62,8 @@ typedef struct {
 
   ngx_http_upstream_init_pt original_init_upstream;
   ngx_http_upstream_init_peer_pt original_init_peer;
+
+  ngx_uint_t max_tries;
 } ngx_http_upstream_polaris_srv_conf_t;
 
 /**
