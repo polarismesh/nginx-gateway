@@ -179,4 +179,5 @@ upstream test_upstream {
 |  mr   | N | Switch for metadata route| off |
 |  mr_mode   | N | metadata route fail over mode | 0 |
 |  fail_report   | N | Business-level fail report status code | "" |
+|  max_tries   | N | Limits the number of tries for request to backend ip | 2 |
 
