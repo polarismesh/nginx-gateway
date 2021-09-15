@@ -11,11 +11,6 @@ done
 
 CORE_INCS="$CORE_INCS $ngx_addon_dir/include"
 
-for lib in `find $ngx_addon_dir/slib -regex ".*\.a$"`
-do
-    CORE_LIBS="$CORE_LIBS $lib"
-done
-
-CORE_LIBS="$CORE_LIBS -lm -pthread"
+CORE_LIBS="$CORE_LIBS $ngx_addon_dir/slib/libpolaris_api.a $ngx_addon_dir/slib/libprotobuf.a -lm -pthread"
 
 
