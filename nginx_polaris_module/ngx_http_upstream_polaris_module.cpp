@@ -205,9 +205,6 @@ static ngx_int_t ngx_http_upstream_init_polaris_peer(ngx_http_request_t *r,
   r->upstream->peer.get  = ngx_http_upstream_get_polaris_peer;
   r->upstream->peer.free = ngx_http_upstream_free_polaris_peer;
 
-  if (dcf->max_tries != NGX_CONF_UNSET_UINT) {
-    r->upstream->peer.tries = dcf->max_tries;
-  }
   // control the retry times >= 2.
   if (r->upstream->peer.tries < 2) {
     r->upstream->peer.tries = 2;
@@ -227,7 +224,6 @@ static ngx_int_t ngx_http_upstream_init_polaris_peer(ngx_http_request_t *r,
 
     memset(ctx, 0, sizeof(ngx_http_upstream_polaris_ctx_t));
     ngx_http_set_ctx(r, ctx, ngx_http_upstream_polaris_module);
-    dp->ctx = ctx;
   }
 
   if (polaris_init_params(dcf, r, ctx) != NGX_OK) {
@@ -251,7 +247,8 @@ static ngx_int_t ngx_http_upstream_get_polaris_peer(ngx_peer_connection_t *pc, v
   pc->cached     = 0;
   pc->connection = NULL;
 
-  ngx_http_upstream_polaris_ctx_t *ctx = bp->ctx;
+  ngx_http_upstream_polaris_ctx_t *ctx = reinterpret_cast<ngx_http_upstream_polaris_ctx_t *>(
+      ngx_http_get_module_ctx(r, ngx_http_upstream_polaris_module));
 
   int ret = polaris_get_addr(ctx);
 
@@ -283,7 +280,8 @@ static void ngx_http_upstream_free_polaris_peer(ngx_peer_connection_t *pc, void 
 
   ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "free polaris peer state:%d", state);
 
-  ngx_http_upstream_polaris_ctx_t *ctx = bp->ctx;
+  ngx_http_upstream_polaris_ctx_t *ctx = reinterpret_cast<ngx_http_upstream_polaris_ctx_t *>(
+      ngx_http_get_module_ctx(bp->request, ngx_http_upstream_polaris_module));
 
   ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "free polaris peer ret status code: %d",
     bp->request->headers_out.status);
@@ -343,7 +341,6 @@ static void *ngx_http_upstream_polaris_create_conf(ngx_conf_t *cf) {
   conf->polaris_metadata_route_enabled = false;
   ngx_str_set(&conf->polaris_fail_status_list, "");
   conf->polaris_fail_status_report_enabled = false;
-  conf->max_tries = NGX_CONF_UNSET_UINT;
 
   return conf;
 }
@@ -588,20 +585,6 @@ static char *ngx_http_upstream_polaris_set_handler(ngx_conf_t *cf, ngx_command_t
 
       continue;
     }
-
-    if (ngx_strncmp(value[i].data, "max_tries=", 10) == 0) {
-      ngx_str_t s = {value[i].len - 10, &value[i].data[10]};
-
-      ngx_int_t max_tries = ngx_atoi(s.data, s.len);
-      if (max_tries < 1 || max_tries > 256) {
-        ngx_conf_log_error(NGX_LOG_ERR, cf, 0,
-                          "dcf->max_tries:%d invalid, only valid in (1-256)",
-                          max_tries);
-        return const_cast<char *>("invalid polaris max_tries");
-      }
-      dcf->max_tries = max_tries;
-      continue;
-    }
   }
 
   dcf->enabled = true;
@@ -663,10 +646,10 @@ static char *ngx_http_upstream_polaris_set_handler(ngx_conf_t *cf, ngx_command_t
   ngx_conf_log_error(
       NGX_LOG_NOTICE, cf, 0,
       "init service_namespace:%s, service_name:%s, timeout: %.2f, mode: %d, "
-      "key: %s, dr: %d, mr_mode: %d, fail_status: %s,  max_tries: %d",
+      "key: %s, dr: %d, mr_mode: %d, fail_status: %s",
       dcf->polaris_service_namespace.data, dcf->polaris_service_name.data, dcf->polaris_timeout,
       dcf->polaris_lb_mode, dcf->polaris_lb_key.data, dcf->polaris_dynamic_route_enabled,
-      dcf->metadata_route_failover_mode, dcf->polaris_fail_status_list.data, dcf->max_tries);
+      dcf->metadata_route_failover_mode, dcf->polaris_fail_status_list.data);
 
   return NGX_CONF_OK;
 }
