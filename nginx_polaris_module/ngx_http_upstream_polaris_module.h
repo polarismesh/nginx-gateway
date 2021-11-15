@@ -62,8 +62,6 @@ typedef struct {
 
   ngx_http_upstream_init_pt original_init_upstream;
   ngx_http_upstream_init_peer_pt original_init_peer;
-
-  ngx_uint_t max_tries;
 } ngx_http_upstream_polaris_srv_conf_t;
 
 /**
@@ -108,7 +106,6 @@ typedef struct {
   ngx_http_request_t *request;
   ngx_event_get_peer_pt original_get_peer;
   ngx_event_free_peer_pt original_free_peer;
-  ngx_http_upstream_polaris_ctx_t *ctx;
 } ngx_http_upstream_polaris_peer_data_t;
 
 extern "C" ngx_module_t ngx_http_upstream_polaris_module;
