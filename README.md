@@ -16,10 +16,11 @@ nginx-polaris is a nginx module which works as a load-balanceer based on Polaris
 nginx version above 1.4.7 will have no problem.
 
 ## Installation Instructions
-1. First you need to setup a [PolarisMesh server](https://github.com/PolarisMesh/polaris).
-2. Compile and package [PolarisCpp](https://github.com/PolarisMesh/polaris-cpp). Unzip `polaris_cpp_sdk.tar.gz` and move the whole folder to your compile workspace, such as `/path/to/workspace/polaris_cpp_sdk`
-3. Move file `config` to `/path/to/workspace/polaris_cpp_sdk`, move folder `nginx_polaris_limit_module` and `nginx_polaris_module` to `/path/to/workspace`.
-4. Download opensource [Nginx](http://nginx.org/en/download.html) to your workspace, so the final file structure of your workspace looks like this:
+1. If you want to try it asap, use the `nginx` binary (nginx version: nginx/1.18.0) we compiled for you in release package and put it in `/usr/local/nginx/sbin` which is the default working directory for nginx. Then you can jump to [Features And Usage](#features-and-usages) part.
+2. First you need to setup a [PolarisMesh server](https://github.com/PolarisMesh/polaris).
+3. Compile and package [PolarisCpp](https://github.com/PolarisMesh/polaris-cpp). Unzip `polaris_cpp_sdk.tar.gz` and move the whole folder to your compile workspace, such as `/path/to/workspace/polaris_cpp_sdk`
+4. Move file `config` to `/path/to/workspace/polaris_cpp_sdk`, move folder `nginx_polaris_limit_module` and `nginx_polaris_module` to `/path/to/workspace`.
+5. Download opensource [Nginx](http://nginx.org/en/download.html) to your workspace, so the final file structure of your workspace looks like this:
 ```
 |-- nginx-1.19.2
 |   |-- CHANGES
