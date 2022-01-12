@@ -66,6 +66,17 @@ make install
 
 ## Features And Usages
 First you need to create a name by Polaris Server, we will take `Test:test.servicename` as an example, in which `Test` represents Polaris namespace and `test.servicename` represents Polaris name.
+And you should also configure the polaris server address by placing `polairs.yaml` within the same folder as nginx binary executable file.
+```
+global:
+  #描述:对接polaris server的相关配置
+  serverConnector:
+    #描述:server列表，由于SDK在运行过程中可以通过接口定时拉取最新server列表，因此这里填的是初始的地址
+    #类型:list
+    #默认值:代理模式，默认为127.0.0.1:8888（本地agent地址）;直连模式，无默认值
+    addresses:
+      - 127.0.0.1:8091 # 埋点地址
+```
 ### L4 and L7 load balance.
 Add below to your nginx configuration under http or stream namespace, L4 or L7 reverse proxy is ready to go and you are no longer bothered by hardcoded ip. 
 ```
