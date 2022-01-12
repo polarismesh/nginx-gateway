@@ -76,7 +76,7 @@ typedef struct {
   ngx_str_t polaris_service_name;
   ngx_int_t polaris_timeout;
   ngx_str_t polaris_lb_key;
-  polaris::LoadBalanceType polaris_lb_mode;
+  ngx_int_t polaris_lb_mode;
 
   ngx_int_t polaris_dynamic_route_enabled;
   ngx_str_t polaris_dynamic_route_metadata_list;

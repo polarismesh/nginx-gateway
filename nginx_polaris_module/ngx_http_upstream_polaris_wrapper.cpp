@@ -354,19 +354,19 @@ void set_polaris_lb_mode(ngx_http_upstream_polaris_srv_conf_t* srv, ngx_http_req
                         ngx_http_upstream_polaris_ctx_t* ctx) {
   switch (srv->polaris_lb_mode) {
     case POLARIS_DEFAULT:
-      ctx->polaris_lb_mode = polaris::kLoadBalanceTypeDefaultConfig;
+      ctx->polaris_lb_mode = 0;
       break;
     case POLARIS_WEIGHTED_RANDOM:
-      ctx->polaris_lb_mode = polaris::kLoadBalanceTypeWeightedRandom;
+      ctx->polaris_lb_mode = 0;
       break;
     case POLARIS_RING_HASH:
-      ctx->polaris_lb_mode = polaris::kLoadBalanceTypeRingHash;
+      ctx->polaris_lb_mode = 1;
       break;
     case POLARIS_L5_CST_HASH:
-      ctx->polaris_lb_mode = polaris::kLoadBalanceTypeL5CstHash;
+      ctx->polaris_lb_mode = 1;
       break;
     default:
-      ctx->polaris_lb_mode = polaris::kLoadBalanceTypeDefaultConfig;
+      ctx->polaris_lb_mode = 0;
   }
 }
 
@@ -449,7 +449,9 @@ int polaris_get_addr(ngx_http_upstream_polaris_ctx_t* ctx) {
   polaris::Instance instance;
   polaris::GetOneInstanceRequest request(serviceKey);
   request.SetTimeout(ctx->polaris_timeout);
-  request.SetLoadBalanceType(ctx->polaris_lb_mode);
+  if (ctx->polaris_lb_mode > 0) {
+    request.SetLoadBalanceType(polaris::kLoadBalanceTypeRingHash);
+  }
   set_request_hash_str(ctx, request);
 
   if (ctx->polaris_dynamic_route_enabled) {
