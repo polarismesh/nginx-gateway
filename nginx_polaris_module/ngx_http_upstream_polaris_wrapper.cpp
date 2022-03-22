@@ -22,7 +22,10 @@ struct Comparator {
 
 class ConsumerApiWrapper {
  public:
-  ConsumerApiWrapper() { m_consumer = polaris::ConsumerApi::CreateWithDefaultFile(); }
+  ConsumerApiWrapper() { 
+    polaris::SetLogDir(POLARIS_LOG_DIR);
+    m_consumer = polaris::ConsumerApi::CreateFromFile(POLARIS_CONFIG_DIR); 
+  }
 
   static ConsumerApiWrapper& Instance() {
     static ConsumerApiWrapper consumer_api;
@@ -40,13 +43,8 @@ class ConsumerApiWrapper {
 class MetadataRouteConsumerApiWrapper {
  public:
   MetadataRouteConsumerApiWrapper() {
-    std::string config_string_ =
-    "consumer:\n"
-    "\n  serviceRouter:\n"
-    "    chain:\n"
-    "      - dstMetaRouter\n"
-    "      - nearbyBasedRouter\n";
-    m_consumer = polaris::ConsumerApi::CreateFromString(config_string_);
+    polaris::SetLogDir(POLARIS_LOG_DIR);
+    m_consumer = polaris::ConsumerApi::CreateFromFile(POLARIS_CONFIG_DIR); 
   }
 
   static MetadataRouteConsumerApiWrapper& Instance() {

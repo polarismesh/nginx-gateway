@@ -19,8 +19,17 @@ extern "C" {
     #include <ngx_core.h>
     #include <ngx_http.h>
 }
-
+#include "polaris/log.h"
 #include "polaris/limit.h"
+
+#ifndef POLARIS_CONFIG_DIR
+#define POLARIS_CONFIG_DIR "polaris.yaml"
+#endif
+
+#ifndef POLARIS_LOG_DIR
+#define POLARIS_LOG_DIR "/polaris"
+#endif
+
 
 static const char kServiceNamespace[] = "service_namespace=";
 static const uint32_t kServiceNamespaceSize = sizeof(kServiceNamespace) - 1;
@@ -31,7 +40,10 @@ static const uint32_t kTimeoutSize = sizeof(kTimeout) - 1;
 
 class LimitApiWrapper {
  public:
-  LimitApiWrapper() { m_limit = polaris::LimitApi::CreateWithDefaultFile(); }
+  LimitApiWrapper() { 
+    polaris::SetLogDir(POLARIS_LOG_DIR);
+    m_limit = polaris::LimitApi::CreateFromFile(POLARIS_CONFIG_DIR); 
+  }
 
   static LimitApiWrapper& Instance() {
     static LimitApiWrapper limit_api;
