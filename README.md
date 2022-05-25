@@ -1,4 +1,4 @@
-# nginx-polaris
+# Nginx Gateway
 ## Table of Contents
 
 * [What is nginx-polaris?](#what-is-nginx-polaris)
