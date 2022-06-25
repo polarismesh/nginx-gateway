@@ -13,6 +13,7 @@ extern "C" {
 }
 
 #include <time.h>
+#include "polaris/log.h"
 #include "polaris/consumer.h"
 
 using std::string;
@@ -27,6 +28,16 @@ using std::vector;
 #define METADATA_ROUTE_FAILOVER_BY_NONE     0
 #define METADATA_ROUTE_FAILOVER_BY_ALL      1
 #define METADATA_ROUTE_FAILOVER_BY_NOT_KEY  2
+
+#ifndef POLARIS_CONFIG_DIR
+#define POLARIS_CONFIG_DIR "polaris.yaml"
+#endif
+
+#ifndef POLARIS_LOG_DIR
+#define POLARIS_LOG_DIR "/polaris"
+#endif
+
+
 
 /**
  * this come from ngx_http_upstream_dynamic_module.c

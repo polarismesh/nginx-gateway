@@ -11,11 +11,14 @@ extern "C" {
 }
 
 #include <time.h>
-#include "polaris/consumer.h"
+#include "ngx_http_upstream_polaris_module.h"
 
 class ConsumerApiWrapperStream {
  public:
-  ConsumerApiWrapperStream() { m_consumer = polaris::ConsumerApi::CreateWithDefaultFile(); }
+  ConsumerApiWrapperStream() { 
+    polaris::SetLogDir(POLARIS_LOG_DIR);
+    m_consumer = polaris::ConsumerApi::CreateFromFile(POLARIS_CONFIG_DIR); 
+}
 
   static ConsumerApiWrapperStream& Instance() {
     static ConsumerApiWrapperStream consumer_api;
