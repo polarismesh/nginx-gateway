@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    name: Release polaris
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+
+      - name: Build
+        id: build
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          pushd build
+          bash build.sh ${VERSION}
+          popd
+          PACKAGE_NAME=$(ls | grep nginx-gateway-release*.tar.gz | sed -n '1p')
+          echo ::set-output name=name::${PACKAGE_NAME}
+
+      - name: Upload asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ steps.build.outputs.name }}
+          asset_name: ${{ steps.build.outputs.name }}
+          asset_content_type: application/gzip
