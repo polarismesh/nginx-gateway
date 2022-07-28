@@ -16,10 +16,10 @@ jobs:
     - name: clean
       run: |
        pushd build
-       ./clean.sh
+       bash clean.sh
        popd
     - name: make
       run: |
         pushd build
-        ./make.sh
+        bash make.sh
         popd
