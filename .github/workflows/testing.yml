@@ -13,11 +13,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: clean
-      run: |
-       pushd build
-       bash clean.sh
-       popd
     - name: make
       run: |
         pushd build
