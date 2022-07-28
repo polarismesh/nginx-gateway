@@ -6,6 +6,5 @@ global:
   serverConnector:
     #描述:server列表，由于SDK在运行过程中可以通过接口定时拉取最新server列表，因此这里填的是初始的地址
     #类型:list
-    #默认值:代理模式，默认为127.0.0.1:8888（本地agent地址）;直连模式，无默认值
     addresses:
-      - 127.0.0.1:8091 # 埋点地址
+      - ${polaris_address} # 埋点地址
