@@ -10,6 +10,11 @@ echo "build nginx-gateway for version ${version}"
 pushd ../third_party
 rm -rf polaris-cpp
 git clone -b release_v1.1.0 https://github.com/polarismesh/polaris-cpp polaris-cpp
+rm -rf nginx-1.18.0
+curl http://nginx.org/download/nginx-1.18.0.tar.gz -o nginx-1.18.0.tar.gz
+tar xf nginx-1.18.0.tar.gz
+cp nginx/make nginx-1.18.0/auto/
+
 
 pushd polaris-cpp
 make

@@ -8,3 +8,11 @@ global:
     #类型:list
     addresses:
       - ${polaris_address} # 埋点地址
+# 描述：限流相关配置
+rateLimiter:
+  # 分布式限流时用于发现限流服务器
+  rateLimitCluster:
+    # 限流服务器集群所在命名空间
+    namespace: Polaris
+    # 限流服务器集群名字
+    service: polaris.limiter
