@@ -107,15 +107,16 @@ static ngx_int_t ngx_http_polaris_limit_handler(ngx_http_request_t *r) {
     }
 
     get_labels_from_request(r, label_keys, labels);    // 从http 请求中获取labels
-
+    std::string uri(reinterpret_cast<char *>(r->uri.data), r->uri.len);
     quota_request.SetServiceNamespace(service_namespace);       // 设置限流规则对应服务的命名空间
     quota_request.SetServiceName(service_name);                 // 设置限流规则对应的服务名
+    quota_request.SetMethod(uri);
     quota_request.SetLabels(labels);                            // 设置label用于匹配限流规则
 
     std::string labels_values_str;
     join_map_str(r->connection->log, labels, labels_values_str);
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-        "[PolarisRateLimiting] quota_request namespace %s, service %s, labels %s", service_namespace.c_str(), service_name.c_str(), labels_values_str.c_str());
+        "[PolarisRateLimiting] quota_request namespace %s, service %s, method %s, labels %s", service_namespace.c_str(), service_name.c_str(), uri.c_str(), labels_values_str.c_str());
     
     ret = Limit_API_SINGLETON.GetLimitApi()->GetQuota(quota_request, result);
 
@@ -173,7 +174,7 @@ static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd,
             } else {
                 ngx_str_t namespace_str = {value[i].len - KEY_NAMESPACE_SIZE, &value[i].data[KEY_NAMESPACE_SIZE]};
                 plcf->service_namespace = namespace_str;
-                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %v as nginx namespace", namespace_str);
+                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as nginx namespace", &namespace_str);
             }
             continue;
         }
@@ -187,7 +188,7 @@ static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd,
                 ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[PolarisRateLimiting] service name not set");
                 return static_cast<char *>(NGX_CONF_ERROR);
             } else {
-                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %v as service", svc_name_str);
+                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as service", &svc_name_str);
             }
             continue;
         }
