@@ -15,7 +15,6 @@ curl http://nginx.org/download/nginx-1.18.0.tar.gz -o nginx-1.18.0.tar.gz
 tar xf nginx-1.18.0.tar.gz
 cp nginx/make nginx-1.18.0/auto/
 
-
 pushd polaris-cpp
 make
 make package
@@ -41,6 +40,8 @@ chmod +x configure
     --with-stream
 make
 make install
+cp ../nginx/start.sh ../../$folder_name/sbin/start.sh
+cp ../nginx/stop.sh ../../$folder_name/sbin/stop.sh
 popd
 
 pushd ..
