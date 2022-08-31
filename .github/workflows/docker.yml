@@ -38,4 +38,4 @@ jobs:
           DOCKER_TAG: ${{ steps.get_version.outputs.VERSION }}
         run: |
           cd build
-          ./build_docker.sh ${DOCKER_TAG}
+          bash build_docker.sh ${DOCKER_TAG}
