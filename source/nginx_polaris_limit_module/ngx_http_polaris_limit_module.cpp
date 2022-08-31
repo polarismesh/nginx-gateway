@@ -89,6 +89,10 @@ static ngx_int_t ngx_http_polaris_limit_handler(ngx_http_request_t *r) {
     service_namespace_str = plcf->service_namespace;
     service_name_str =plcf->service_name;
 
+    polaris::LimitApi* limit_api = Limit_API_SINGLETON.GetLimitApi();
+    if (NULL == limit_api) {
+      return NGX_OK;
+    }
     std::string service_namespace(reinterpret_cast<char *>(service_namespace_str.data), service_namespace_str.len);
     std::string service_name(reinterpret_cast<char *>(service_name_str.data), service_name_str.len);
     polaris::ServiceKey serviceKey = {service_namespace, service_name};
@@ -333,5 +337,49 @@ static void get_labels_from_request(ngx_http_request_t* r, const std::set<std::s
         }
       }
     }
+  }
+}
+
+static bool endsWith(const std::string& str, const std::string& suffix)
+{
+    return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
+}
+
+static std::string get_polaris_conf_path() {
+  char *cwd = get_current_dir_name();
+  std::string dirname(cwd);
+  free(cwd);
+  if (endsWith(dirname, PATH_SBIN)) {
+     dirname = dirname.substr(0, dirname.rfind(PATH_SBIN));
+  } else {
+     dirname += "/";
+  }
+  dirname += "conf/polaris.yaml";
+  return dirname;
+}
+
+static bool exist_file(const std::string& name) {
+  std::ifstream file(name.c_str());
+  return file.good();
+}
+
+const std::string defaultConfigContent = R"##(
+global:
+  serverConnector:
+    addresses:
+    - ${polaris_address}
+)##";
+
+LimitApiWrapper::LimitApiWrapper() {
+  std::string conf_path = get_polaris_conf_path();
+  std::string err_msg;
+  if (exist_file(conf_path)) {
+    m_limit = polaris::LimitApi::CreateFromFile(conf_path, err_msg);
+  } else {
+    std::cout << "[polaris-limiter] config file " << conf_path << " not exists, create with default config" << std::endl;
+    m_limit = polaris::LimitApi::CreateFromString(defaultConfigContent, err_msg);
+  }
+  if (NULL == m_limit) {
+    std::cout << "[polaris-limiter] fail to create limit api, err: " << err_msg << std::endl;
   }
 }

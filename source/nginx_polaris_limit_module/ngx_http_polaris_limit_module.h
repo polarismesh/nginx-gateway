@@ -24,6 +24,7 @@ extern "C" {
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <fstream>
 
 static const char KEY_NAMESPACE[] = "namespace=";
 static const uint32_t KEY_NAMESPACE_SIZE = sizeof(KEY_NAMESPACE) - 1;
@@ -38,27 +39,9 @@ static const std::string LABEL_KEY_QUERY = "$query.";
 static const std::string LABEL_KEY_CALLER_IP = "$caller_ip";
 static const std::string PATH_SBIN = "sbin";
 
-static bool endsWith(const std::string& str, const std::string& suffix)
-{
-    return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
-}
-
-static std::string get_polaris_conf_path() {
-  char *cwd = get_current_dir_name();
-  std::string dirname(cwd);
-  free(cwd);
-  if (endsWith(dirname, PATH_SBIN)) {
-     dirname = dirname.substr(0, dirname.rfind(PATH_SBIN));
-  } else {
-     dirname += "/";
-  }
-  dirname += "conf/polaris.yaml";
-  return dirname;
-}
-
 class LimitApiWrapper {
  public:
-  LimitApiWrapper() { m_limit = polaris::LimitApi::CreateFromFile(get_polaris_conf_path()); }
+  LimitApiWrapper();
 
   static LimitApiWrapper& Instance() {
     static LimitApiWrapper limit_api;

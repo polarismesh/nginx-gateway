@@ -2,12 +2,15 @@
 
 set -e
 
+ngx_file_name=nginx-1.23.1
+
 pushd ../third_party
 rm -rf polaris-cpp
 git clone -b release_v1.1.0 https://github.com/polarismesh/polaris-cpp polaris-cpp
-rm -rf nginx-1.18.0
-curl http://nginx.org/download/nginx-1.18.0.tar.gz -o nginx-1.18.0.tar.gz
-tar xf nginx-1.18.0.tar.gz
+rm -rf "$ngx_file_name"
+curl http://nginx.org/download/"$ngx_file_name".tar.gz -o "$ngx_file_name".tar.gz
+tar xf "$ngx_file_name".tar.gz
+cp nginx/make "$ngx_file_name"/auto/
 
 pushd polaris-cpp
 make
@@ -25,13 +28,14 @@ echo "target name $folder_name"
 rm -rf ../$folder_name
 mkdir -p ../$folder_name
 
-pushd nginx-1.18.0/
+pushd "$ngx_file_name"/
 chmod +x configure
 ./configure \
     --prefix=../../$folder_name \
 	--add-module=../../source/nginx_polaris_limit_module \
 	--add-module=../polaris_client \
-    --with-stream
+    --with-stream \
+    --with-cpp=g++
 make
 popd
 
