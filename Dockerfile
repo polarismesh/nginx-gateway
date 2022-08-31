@@ -19,7 +19,9 @@ RUN set -ex \
     && make \
     && make package \
     && tar xf polaris_cpp_sdk.tar.gz \
-    && mv polaris_cpp_sdk/* /build/third_party/polaris_client/
+    && mv polaris_cpp_sdk/* /build/third_party/polaris_client/ \
+    && cd .. \
+    && rm -rf polaris-cpp
 
 RUN set -ex \
     && mkdir -p /server \
