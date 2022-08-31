@@ -32,7 +32,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 用户也可以通过源码编译的方式，生成安装包。
 
-- 安装依赖项：在编译之前，需要先安装依赖项。通过执行```yum install autoconf automake libtool curl make g++ unzip```进行安装。
+- 安装依赖项：在编译之前，需要先安装依赖项。通过执行```yum install autoconf automake libtool curl make gcc-c++ libstdc++-devel unzip```进行安装。
 
 - 下载源码包：可以直接从[releases](https://github.com/polarismesh/nginx-gateway/releases)下载最新的nginx网关源码包。
 
