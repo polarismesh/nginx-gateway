@@ -33,8 +33,7 @@ static void split_query(std::string& s, std::map<std::string, std::string>& v);
 static void parse_query_token(const std::string& token, std::map<std::string, std::string>& v);
 static void get_labels_from_request(ngx_http_request_t* r, const std::set<std::string>*& label_keys,
                                       std::map<std::string, std::string>& keyword_map);
-static void join_set_str(const ngx_log_t *log, const std::set<std::string>*& label_keys, std::string& labels_str);
-static void join_map_str(const ngx_log_t *log, const std::map<std::string, std::string>& labels, std::string& labels_str);
+static void join_map_str(const std::map<std::string, std::string>& labels, std::string& labels_str);
 
 static ngx_command_t ngx_http_polaris_limit_commands[] = {
     { ngx_string("polaris_rate_limiting"),
@@ -88,22 +87,28 @@ static ngx_int_t ngx_http_polaris_limit_handler(ngx_http_request_t *r) {
         ngx_http_get_module_loc_conf(r, ngx_http_polaris_limit_module));
 
     if (plcf->enable == 0) {
+      ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[PolarisRateLimiting] RateLimit not enabled");
       return NGX_DECLINED;
     }
-    polaris::LimitApi* limit_api = Limit_API_SINGLETON.GetLimitApi();
+    polaris::LimitApi* limit_api = Limit_API_SINGLETON.GetLimitApi(r->connection->log);
     if (NULL == limit_api) {
+      ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[PolarisRateLimiting] RateLimit api not created");
       return NGX_DECLINED;
     }
 
     polaris::ServiceKey serviceKey = {plcf->service_namespace, plcf->service_name};
     std::string method = std::string(reinterpret_cast<char *>(r->uri.data), r->uri.len);
-    ret = Limit_API_SINGLETON.GetLimitApi()->FetchRuleLabelKeys(serviceKey, label_keys);
+    ret = limit_api->FetchRuleLabelKeys(serviceKey, label_keys);
 
-    std::string labels_key_str;
-    if (label_keys != NULL) {
-      join_set_str(r->connection->log, label_keys, labels_key_str);
+    if (ret != 0) {
+       ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "[PolarisRateLimiting] fail to fetchRuleLabelKeys return is: %d", ret);
+       return NGX_DECLINED;
     }
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[PolarisRateLimiting] FetchRuleLabelKeys return is: %d, labels %s", ret, labels_key_str.c_str());
+
+    if (label_keys != NULL) {
+      ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[PolarisRateLimiting] FetchRuleLabelKeys labels count %d", label_keys->size());
+    }
+    
     if (ret == polaris::kReturnTimeout) {
         return NGX_DECLINED;                                     // 拉取labelkey超时，不限流
     } else if (ret != polaris::kReturnOk) {
@@ -117,12 +122,13 @@ static ngx_int_t ngx_http_polaris_limit_handler(ngx_http_request_t *r) {
     quota_request.SetMethod(uri);
     quota_request.SetLabels(labels);                            // 设置label用于匹配限流规则
 
-    std::string labels_values_str;
-    join_map_str(r->connection->log, labels, labels_values_str);
-    ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-        "[PolarisRateLimiting] quota_request namespace %s, service %s, method %s, labels %s", plcf->service_namespace.c_str(), plcf->service_name.c_str(), uri.c_str(), labels_values_str.c_str());
-    
-    ret = Limit_API_SINGLETON.GetLimitApi()->GetQuota(quota_request, result);
+    if (r->connection->log->log_level >= NGX_LOG_DEBUG) {
+      std::string labels_values_str;
+      join_map_str(labels, labels_values_str);
+      ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
+          "[PolarisRateLimiting] quota_request namespace %s, service %s, method %s, labels %s", plcf->service_namespace.c_str(), plcf->service_name.c_str(), uri.c_str(), labels_values_str.c_str());
+    }
+    ret = limit_api->GetQuota(quota_request, result);
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[PolarisRateLimiting] GetQuota return is: %d", ret);
     if (ret == polaris::kReturnTimeout) {
@@ -138,25 +144,12 @@ static ngx_int_t ngx_http_polaris_limit_handler(ngx_http_request_t *r) {
     return NGX_DECLINED;
 }
 
-static void join_set_str(const ngx_log_t *log, const std::set<std::string>*& label_keys, std::string& labels_str) {
-  if (log->log_level < NGX_LOG_DEBUG) {
-    return;
-  }
-  for (std::set<std::string>::iterator it = label_keys->begin(); it != label_keys->end(); it++) {
-    labels_str += *it;
-    labels_str += " ";
-  }
-}
-
-static void join_map_str(const ngx_log_t *log, const std::map<std::string, std::string>& labels, std::string& labels_str) {
-  if (log->log_level < NGX_LOG_DEBUG) {
-    return;
-  }
+static void join_map_str(const std::map<std::string, std::string>& labels, std::string& labels_str) {
   for (std::map<std::string, std::string>::const_iterator it = labels.begin(); it != labels.end(); it++) {
     labels_str += it->first;
     labels_str += "=";
     labels_str += it->second;
-    labels_str += " ";
+    labels_str += ",";
   }
 }
 
@@ -215,37 +208,38 @@ static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd,
             }
             continue;
         }
+       
+    }
 
-        if (!has_namespace) {
-          char *namespace_env_value = getenv(ENV_NAMESPACE.c_str());
-          if (NULL != namespace_env_value) {
-              plcf->service_namespace = std::string(namespace_env_value);
-          } else {
-              plcf->service_namespace = DEFAULT_NAMESPACE;
-          }
-          ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %s as nginx namespace", plcf->service_namespace.c_str());
-        }
+    if (!has_namespace) {
+      char *namespace_env_value = getenv(ENV_NAMESPACE.c_str());
+      if (NULL != namespace_env_value) {
+          plcf->service_namespace = std::string(namespace_env_value);
+      } else {
+          plcf->service_namespace = DEFAULT_NAMESPACE;
+      }
+      ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %s as nginx namespace", plcf->service_namespace.c_str());
+    }
 
-        if (!has_service) {
-          char *service_env_value = getenv(ENV_SERVICE.c_str());
-          if (NULL != service_env_value) {
-              plcf->service_name = std::string(service_env_value);
-          } else {
-              plcf->service_name = DEFAULT_SERVICE;
-          }
-          ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %s as nginx service name", plcf->service_name.c_str());
-        }
+    if (!has_service) {
+      char *service_env_value = getenv(ENV_SERVICE.c_str());
+      if (NULL != service_env_value) {
+          plcf->service_name = std::string(service_env_value);
+      } else {
+          plcf->service_name = DEFAULT_SERVICE;
+      }
+      ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %s as nginx service name", plcf->service_name.c_str());
+    }
 
-        if (!has_enable) {
-          char *enable_env_value = getenv(ENV_RATELIMIT_ENABLE.c_str());
-          if (NULL != enable_env_value) {
-              std::string enable_str = std::string(enable_env_value);
-              plcf->enable = string2bool(enable_str) ? 1 : 0;
-          } else {
-              plcf->enable = 0;
-          }
-          ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as nginx ratelimit enable", plcf->enable);
-        }
+    if (!has_enable) {
+      char *enable_env_value = getenv(ENV_RATELIMIT_ENABLE.c_str());
+      if (NULL != enable_env_value) {
+          std::string enable_str = std::string(enable_env_value);
+          plcf->enable = string2bool(enable_str) ? 1 : 0;
+      } else {
+          plcf->enable = 0;
+      }
+      ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %d as nginx ratelimit enable", plcf->enable);
     }
 
     return static_cast<char *>(NGX_CONF_OK);
@@ -282,6 +276,8 @@ static void *ngx_http_polaris_limit_create_conf(ngx_conf_t *cf) {
     }
 
     conf->status_code = 429;        // 限流默认返回429
+
+    Limit_API_SINGLETON.LoadPolarisConfig();
     return conf;
 }
 
@@ -418,18 +414,58 @@ global:
   serverConnector:
     addresses:
     - ${polaris_address}
+rateLimiter:
+  rateLimitCluster:
+    namespace: Polaris
+    service: polaris.limiter
 )##";
 
-LimitApiWrapper::LimitApiWrapper() {
-  std::string conf_path = get_polaris_conf_path();
-  std::string err_msg;
-  if (exist_file(conf_path)) {
-    m_limit = polaris::LimitApi::CreateFromFile(conf_path, err_msg);
-  } else {
-    std::cout << "[polaris-limiter] config file " << conf_path << " not exists, create with default config" << std::endl;
-    m_limit = polaris::LimitApi::CreateFromString(defaultConfigContent, err_msg);
-  }
+void LimitApiWrapper::Init(ngx_log_t *logger) {
+  ngx_log_error(NGX_LOG_NOTICE, logger, 0, "[PolarisRateLimiting] start to init polaris limit api, polaris config %s", m_polaris_config.c_str());
+  std::string err_msg("");
+  m_limit = polaris::LimitApi::CreateFromString(m_polaris_config, err_msg);
   if (NULL == m_limit) {
-    std::cout << "[polaris-limiter] fail to create limit api, err: " << err_msg << std::endl;
+    ngx_log_error(NGX_LOG_ERR, logger, 0, "[PolarisRateLimiting] fail to create limit api, err: %s", err_msg.c_str());
+  } else {
+    ngx_log_error(NGX_LOG_NOTICE, logger, 0, "[PolarisRateLimiting] success to init polaris limit api");
   }
+  m_created = true;
+}
+
+/// @brief 将文件内容读入字符串中
+std::string readFileIntoString(const std::string& path) {
+    std::ifstream input_file(path);
+    return std::string((std::istreambuf_iterator<char>(input_file)), std::istreambuf_iterator<char>());
+}
+
+/// @brief 支持环境变量展开
+static std::string expand_environment_variables( const std::string &s ) {
+    if( s.find( "${" ) == std::string::npos ) return s;
+
+    std::string pre  = s.substr( 0, s.find( "${" ) );
+    std::string post = s.substr( s.find( "${" ) + 2 );
+
+    if( post.find( '}' ) == std::string::npos ) return s;
+
+    std::string variable = post.substr( 0, post.find( '}' ) );
+    std::string value    = "";
+
+    post = post.substr( post.find( '}' ) + 1 );
+
+    const char *v = getenv( variable.c_str() );
+    if( v != NULL ) value = std::string( v );
+
+    return expand_environment_variables( pre + value + post );
+}
+
+void LimitApiWrapper::LoadPolarisConfig() {
+  std::string conf_path = get_polaris_conf_path();
+  std::string content("");
+  if (exist_file(conf_path)) {
+    content = readFileIntoString(conf_path);
+  }
+  if (content.size() == 0) {
+    content = defaultConfigContent;
+  }
+  m_polaris_config = expand_environment_variables(content);
 }

@@ -1,0 +1,61 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-gateway
+  namespace: default
+  labels:
+    app: nginx-gateway
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      name: service-nginx
+      targetPort: 80
+  selector:
+    app: nginx-gateway
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: nginx-gateway
+  name: nginx-gateway
+  namespace: default
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-gateway
+  serviceName: nginx-gateway
+  template:
+    metadata:
+      labels:
+        app: nginx-gateway
+    spec:
+      containers:
+      - image: polarismesh/nginx:1.1.0-alpha.6
+        imagePullPolicy: Always
+        name: nginx-gateway
+        resources:
+          limits:
+            cpu: "500m"
+            memory: 1000Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        env:
+        - name: polaris_address
+          value: polaris.polaris-system:8091
+        - name: polaris_nginx_namespace
+          value: default
+        - name: polaris_nginx_service
+          value: nginx-gateway
+        - name: polaris_nginx_ratelimit_enable
+          value: "true"
+      restartPolicy: Always
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+
