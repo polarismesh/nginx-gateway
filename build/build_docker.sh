@@ -21,7 +21,7 @@ done
 platforms=${platforms::-1}
 extra_tags=""
 
-pre_release=`echo ${docker_tag}|egrep "(alpha|beta|rc|[T|t]est)"|wc -l`
+pre_release=`echo ${docker_tag}|egrep "(alpha|[T|t]est)"|wc -l`
 if [ ${pre_release} == 0 ]; then
   extra_tags="-t ${docker_repository}/nginx:latest"
 fi
