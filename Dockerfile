@@ -37,6 +37,8 @@ RUN set -ex \
     && ./configure --prefix=/etc/nginx --add-module=../../source/nginx_polaris_limit_module --add-module=../polaris_client --with-stream --with-cpp=g++ \
     && make \
     && make install \
-    && ln -s /etc/nginx/sbin/nginx /usr/local/bin/nginx 
+    && ln -sf /etc/nginx/sbin/nginx /usr/local/bin/nginx \
+    && ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log
 
 CMD ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/conf/nginx.conf"]
