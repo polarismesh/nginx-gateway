@@ -16,6 +16,7 @@ rm -rf "$ngx_file_name"
 curl http://nginx.org/download/"$ngx_file_name".tar.gz -o "$ngx_file_name".tar.gz
 tar xf "$ngx_file_name".tar.gz
 cp nginx/make "$ngx_file_name"/auto/
+cp nginx/nginx.conf "$ngx_file_name"/conf/
 
 pushd polaris-cpp
 make

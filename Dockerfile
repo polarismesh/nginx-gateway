@@ -25,19 +25,18 @@ RUN set -ex \
     && rm -rf polaris-cpp
 
 RUN set -ex \
-    && mkdir -p /server \
+    && mkdir -p /etc/nginx \
     && cd /build/third_party \
     && ngx_file_name=nginx-1.23.1 \
     && curl http://nginx.org/download/"$ngx_file_name".tar.gz -o "$ngx_file_name".tar.gz \
     && tar xf "$ngx_file_name".tar.gz \
     && cp nginx/make "$ngx_file_name"/auto/ \
+    && cp nginx/nginx.conf "$ngx_file_name"/conf/ \
     && chmod +x "$ngx_file_name"/configure \
     && cd "$ngx_file_name" \
-    && ./configure --prefix=/server --add-module=../../source/nginx_polaris_limit_module --add-module=../polaris_client --with-stream --with-cpp=g++ \
+    && ./configure --prefix=/etc/nginx --add-module=../../source/nginx_polaris_limit_module --add-module=../polaris_client --with-stream --with-cpp=g++ \
     && make \
-    && make install
+    && make install \
+    && ln -s /etc/nginx/sbin/nginx /usr/local/bin/nginx 
 
-
-ENV PATH=/server/sbin:$PATH
-
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/conf/nginx.conf"]
