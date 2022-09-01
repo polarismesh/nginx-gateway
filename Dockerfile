@@ -36,8 +36,6 @@ RUN set -ex \
     && ./configure --prefix=/server --add-module=../../source/nginx_polaris_limit_module --add-module=../polaris_client --with-stream --with-cpp=g++ \
     && make
 
-WORKDIR /server
-
 ENV PATH=/server/sbin:$PATH
 
 CMD ["nginx", "-g", "daemon off;"]
