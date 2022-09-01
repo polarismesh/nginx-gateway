@@ -4,6 +4,7 @@ FROM debian:stable-slim
 RUN set -ex \
     && apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
+     telnet curl net-tools vim \
      autoconf automake wget git libtool curl make gcc g++ unzip libpcre3 libpcre3-dev zlib1g zlib1g-dev libssl-dev
 
 COPY source /build/source
@@ -36,5 +37,7 @@ RUN set -ex \
     && make
 
 WORKDIR /server
+
+ENV PATH=/server/sbin:$PATH
 
 CMD ["nginx", "-g", "daemon off;"]
