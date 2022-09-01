@@ -34,7 +34,9 @@ RUN set -ex \
     && chmod +x "$ngx_file_name"/configure \
     && cd "$ngx_file_name" \
     && ./configure --prefix=/server --add-module=../../source/nginx_polaris_limit_module --add-module=../polaris_client --with-stream --with-cpp=g++ \
-    && make
+    && make \
+    && make install
+
 
 ENV PATH=/server/sbin:$PATH
 
