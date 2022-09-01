@@ -38,7 +38,7 @@ static void join_map_str(const ngx_log_t *log, const std::map<std::string, std::
 
 static ngx_command_t ngx_http_polaris_limit_commands[] = {
     { ngx_string("polaris_rate_limiting"),
-      NGX_HTTP_LOC_CONF|NGX_CONF_1MORE,
+      NGX_HTTP_LOC_CONF|NGX_CONF_ANY,
       ngx_http_polaris_limit_conf_set,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
