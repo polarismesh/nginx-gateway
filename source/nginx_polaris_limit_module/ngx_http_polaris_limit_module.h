@@ -27,6 +27,7 @@ extern "C" {
 #include <fstream>
 #include <cstring>
 #include <cstdlib>
+#include <mutex>
 
 static const char KEY_ENABLE[] = "enable";
 static const uint32_t KEY_ENABLE_SIZE = sizeof(KEY_ENABLE) - 1;
@@ -35,9 +36,9 @@ static const uint32_t KEY_NAMESPACE_SIZE = sizeof(KEY_NAMESPACE) - 1;
 static const char KEY_SERVICE_NAME[] = "service=";
 static const uint32_t KEY_SERVICE_NAME_SIZE = sizeof(KEY_SERVICE_NAME) - 1;
 
-static const std::string ENV_NAMESPACE = "polaris.nginx.namespace";
-static const std::string ENV_SERVICE = "polaris.nginx.service";
-static const std::string ENV_RATELIMIT_ENABLE = "polaris.nginx.ratelimit.enable";
+static const std::string ENV_NAMESPACE = "polaris_nginx_namespace";
+static const std::string ENV_SERVICE = "polaris_nginx_service";
+static const std::string ENV_RATELIMIT_ENABLE = "polaris_nginx_ratelimit_enable";
 
 static const std::string DEFAULT_NAMESPACE = "default";
 static const std::string DEFAULT_SERVICE = "nginx-gateway";
@@ -50,17 +51,38 @@ static const std::string PATH_SBIN = "sbin";
 
 class LimitApiWrapper {
  public:
-  LimitApiWrapper();
+
+  LimitApiWrapper() {
+    m_created = false;
+  }
+
+  void LoadPolarisConfig();
+
+  void Init(ngx_log_t *ngx_log);
 
   static LimitApiWrapper& Instance() {
     static LimitApiWrapper limit_api;
     return limit_api;
   }
 
-  polaris::LimitApi* GetLimitApi() { return m_limit; }
+  polaris::LimitApi* GetLimitApi(ngx_log_t *ngx_log) { 
+    if (m_created) {
+      return m_limit;
+    }
+    m_mtx.lock();
+    if (m_created) {
+      return m_limit;
+    }
+    Init(ngx_log);
+    m_mtx.unlock();
+    return m_limit;
+  }
 
  private:
   polaris::LimitApi* m_limit;
+  std::string m_polaris_config;
+  std::mutex m_mtx;
+  bool m_created;
 };
 
 #define Limit_API_SINGLETON LimitApiWrapper::Instance()
