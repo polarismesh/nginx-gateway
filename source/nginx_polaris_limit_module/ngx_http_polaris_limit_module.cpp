@@ -14,11 +14,13 @@
 #include "ngx_http_polaris_limit_module.h"
 
 typedef struct {
-    ngx_str_t                           service_namespace;                  // 命名空间
-
-    ngx_str_t                           service_name;                       // 服务名
+    ngx_int_t                           enable;                             // 是否启用限流
 
     ngx_int_t                           status_code;                        // 返回码
+
+    std::string                         service_namespace;                  // 命名空间
+
+    std::string                         service_name;                       // 服务名
 
 } ngx_http_polaris_limit_conf_t;
 
@@ -82,20 +84,18 @@ static ngx_int_t ngx_http_polaris_limit_handler(ngx_http_request_t *r) {
     std::map<std::string, std::string>      labels;
     const std::set<std::string>            *label_keys;
 
-    ngx_str_t                               service_namespace_str;
-    ngx_str_t                               service_name_str;
     plcf = reinterpret_cast<ngx_http_polaris_limit_conf_t *>(
         ngx_http_get_module_loc_conf(r, ngx_http_polaris_limit_module));
-    service_namespace_str = plcf->service_namespace;
-    service_name_str =plcf->service_name;
 
+    if (plcf->enable == 0) {
+      return NGX_DECLINED;
+    }
     polaris::LimitApi* limit_api = Limit_API_SINGLETON.GetLimitApi();
     if (NULL == limit_api) {
-      return NGX_OK;
+      return NGX_DECLINED;
     }
-    std::string service_namespace(reinterpret_cast<char *>(service_namespace_str.data), service_namespace_str.len);
-    std::string service_name(reinterpret_cast<char *>(service_name_str.data), service_name_str.len);
-    polaris::ServiceKey serviceKey = {service_namespace, service_name};
+
+    polaris::ServiceKey serviceKey = {plcf->service_namespace, plcf->service_name};
     std::string method = std::string(reinterpret_cast<char *>(r->uri.data), r->uri.len);
     ret = Limit_API_SINGLETON.GetLimitApi()->FetchRuleLabelKeys(serviceKey, label_keys);
 
@@ -105,22 +105,22 @@ static ngx_int_t ngx_http_polaris_limit_handler(ngx_http_request_t *r) {
     }
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[PolarisRateLimiting] FetchRuleLabelKeys return is: %d, labels %s", ret, labels_key_str.c_str());
     if (ret == polaris::kReturnTimeout) {
-        return NGX_DECLINED;                                    // 拉取labelkey超时，不限流
+        return NGX_DECLINED;                                     // 拉取labelkey超时，不限流
     } else if (ret != polaris::kReturnOk) {
         return plcf->status_code;                               // 返回为限流配置的状态码
     }
 
     get_labels_from_request(r, label_keys, labels);    // 从http 请求中获取labels
     std::string uri(reinterpret_cast<char *>(r->uri.data), r->uri.len);
-    quota_request.SetServiceNamespace(service_namespace);       // 设置限流规则对应服务的命名空间
-    quota_request.SetServiceName(service_name);                 // 设置限流规则对应的服务名
+    quota_request.SetServiceNamespace(plcf->service_namespace);       // 设置限流规则对应服务的命名空间
+    quota_request.SetServiceName(plcf->service_name);                 // 设置限流规则对应的服务名
     quota_request.SetMethod(uri);
     quota_request.SetLabels(labels);                            // 设置label用于匹配限流规则
 
     std::string labels_values_str;
     join_map_str(r->connection->log, labels, labels_values_str);
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, 
-        "[PolarisRateLimiting] quota_request namespace %s, service %s, method %s, labels %s", service_namespace.c_str(), service_name.c_str(), uri.c_str(), labels_values_str.c_str());
+        "[PolarisRateLimiting] quota_request namespace %s, service %s, method %s, labels %s", plcf->service_namespace.c_str(), plcf->service_name.c_str(), uri.c_str(), labels_values_str.c_str());
     
     ret = Limit_API_SINGLETON.GetLimitApi()->GetQuota(quota_request, result);
 
@@ -160,6 +160,10 @@ static void join_map_str(const ngx_log_t *log, const std::map<std::string, std::
   }
 }
 
+bool string2bool(const std::string & v) {
+    return !v.empty () && (strcasecmp (v.c_str (), "true") == 0 || atoi (v.c_str ()) != 0);
+}
+
 /* 读取配置参数 polaris_limit */
 static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) {
     ngx_http_polaris_limit_conf_t      *plcf;
@@ -168,33 +172,79 @@ static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd,
     plcf = reinterpret_cast<ngx_http_polaris_limit_conf_t *>(conf);
     value = reinterpret_cast<ngx_str_t *>(cf->args->elts);
 
+    bool has_namespace = false;
+    bool has_service = false;
+    bool has_enable = false;
+  
     for (i = 1; i < cf->args->nelts; i++) {
         if (ngx_strncmp(value[i].data, KEY_NAMESPACE, KEY_NAMESPACE_SIZE) == 0) {
             size_t ns_size = value[i].len - KEY_NAMESPACE_SIZE;
-            if (ns_size <= 0) {
-                ngx_str_t namespace_str = {DEFAULT_NAMESPACE_SIZE, (u_char *)DEFAULT_NAMESPACE};
-                plcf->service_namespace = namespace_str;
-                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] nginx namespace not set, use 'default' as namespace");
-            } else {
+            if (ns_size > 0) {
                 ngx_str_t namespace_str = {value[i].len - KEY_NAMESPACE_SIZE, &value[i].data[KEY_NAMESPACE_SIZE]};
-                plcf->service_namespace = namespace_str;
                 ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as nginx namespace", &namespace_str);
+                plcf->service_namespace = std::string(reinterpret_cast<char *>(namespace_str.data), namespace_str.len);
+                has_namespace = true;
             }
             continue;
         }
 
         if (ngx_strncmp(value[i].data, KEY_SERVICE_NAME, KEY_SERVICE_NAME_SIZE) == 0) {
-            ngx_str_t svc_name_str = {value[i].len - KEY_SERVICE_NAME_SIZE, &value[i].data[KEY_SERVICE_NAME_SIZE]};
-            plcf->service_name = svc_name_str;
-            if (plcf->service_name.len <= 0) {
-                plcf->service_name.data = NULL;
-                plcf->service_name.len = 0;
-                ngx_conf_log_error(NGX_LOG_ERR, cf, 0, "[PolarisRateLimiting] service name not set");
-                return static_cast<char *>(NGX_CONF_ERROR);
-            } else {
-                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as service", &svc_name_str);
+            size_t svc_size = value[i].len - KEY_SERVICE_NAME_SIZE;
+            if (svc_size > 0) {
+                ngx_str_t svc_name_str = {value[i].len - KEY_SERVICE_NAME_SIZE, &value[i].data[KEY_SERVICE_NAME_SIZE]};
+                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as nginx service name", &svc_name_str);
+                plcf->service_name = std::string(reinterpret_cast<char *>(svc_name_str.data), svc_name_str.len);
+                has_service = true;
             }
             continue;
+        }
+
+        if (ngx_strncmp(value[i].data, KEY_ENABLE, KEY_ENABLE_SIZE) == 0) {
+            size_t enable_size = value[i].len - KEY_ENABLE_SIZE;
+            if (enable_size > 0) {
+                ngx_str_t enable_str = {value[i].len - KEY_ENABLE_SIZE, &value[i].data[KEY_ENABLE_SIZE]};
+                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as nginx ratelimit enable value", &enable_str);
+                std::string enable_str_value = std::string(reinterpret_cast<char *>(enable_str.data), enable_str.len);
+                if (string2bool(enable_str_value)) {
+                  plcf->enable = 1;
+                } else {
+                  plcf->enable = 0;
+                }
+                ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as nginx ratelimit enable", plcf->enable);
+                has_enable = true;
+            }
+            continue;
+        }
+
+        if (!has_namespace) {
+          char *namespace_env_value = getenv(ENV_NAMESPACE.c_str());
+          if (NULL != namespace_env_value) {
+              plcf->service_namespace = std::string(namespace_env_value);
+          } else {
+              plcf->service_namespace = DEFAULT_NAMESPACE;
+          }
+          ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %s as nginx namespace", plcf->service_namespace.c_str());
+        }
+
+        if (!has_service) {
+          char *service_env_value = getenv(ENV_SERVICE.c_str());
+          if (NULL != service_env_value) {
+              plcf->service_name = std::string(service_env_value);
+          } else {
+              plcf->service_name = DEFAULT_SERVICE;
+          }
+          ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %s as nginx service name", plcf->service_name.c_str());
+        }
+
+        if (!has_enable) {
+          char *enable_env_value = getenv(ENV_RATELIMIT_ENABLE.c_str());
+          if (NULL != enable_env_value) {
+              std::string enable_str = std::string(enable_env_value);
+              plcf->enable = string2bool(enable_str) ? 1 : 0;
+          } else {
+              plcf->enable = 0;
+          }
+          ngx_conf_log_error(NGX_LOG_NOTICE, cf, 0, "[PolarisRateLimiting] use %V as nginx ratelimit enable", plcf->enable);
         }
     }
 

@@ -25,13 +25,22 @@ extern "C" {
 #include <string>
 #include <unistd.h>
 #include <fstream>
+#include <cstring>
+#include <cstdlib>
 
+static const char KEY_ENABLE[] = "enable";
+static const uint32_t KEY_ENABLE_SIZE = sizeof(KEY_ENABLE) - 1;
 static const char KEY_NAMESPACE[] = "namespace=";
 static const uint32_t KEY_NAMESPACE_SIZE = sizeof(KEY_NAMESPACE) - 1;
 static const char KEY_SERVICE_NAME[] = "service=";
 static const uint32_t KEY_SERVICE_NAME_SIZE = sizeof(KEY_SERVICE_NAME) - 1;
-static const char DEFAULT_NAMESPACE[] = "default";
-static const uint32_t DEFAULT_NAMESPACE_SIZE = sizeof(DEFAULT_NAMESPACE) - 1;
+
+static const std::string ENV_NAMESPACE = "polaris.nginx.namespace";
+static const std::string ENV_SERVICE = "polaris.nginx.service";
+static const std::string ENV_RATELIMIT_ENABLE = "polaris.nginx.ratelimit.enable";
+
+static const std::string DEFAULT_NAMESPACE = "default";
+static const std::string DEFAULT_SERVICE = "nginx-gateway";
 
 static const std::string LABEL_KEY_METHOD = "$method";
 static const std::string LABEL_KEY_HEADER = "$header.";
