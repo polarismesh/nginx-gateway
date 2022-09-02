@@ -35,7 +35,7 @@ spec:
         app: nginx-gateway
     spec:
       containers:
-      - image: polarismesh/nginx:1.1.0-alpha.6
+      - image: polarismesh/nginx:latest
         imagePullPolicy: Always
         name: nginx-gateway
         resources:
