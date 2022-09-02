@@ -29,7 +29,7 @@ extern "C" {
 #include <cstdlib>
 #include <mutex>
 
-static const char KEY_ENABLE[] = "enable";
+static const char KEY_ENABLE[] = "enable=";
 static const uint32_t KEY_ENABLE_SIZE = sizeof(KEY_ENABLE) - 1;
 static const char KEY_NAMESPACE[] = "namespace=";
 static const uint32_t KEY_NAMESPACE_SIZE = sizeof(KEY_NAMESPACE) - 1;
