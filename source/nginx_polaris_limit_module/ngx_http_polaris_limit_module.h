@@ -48,6 +48,7 @@ static const std::string LABEL_KEY_HEADER = "$header.";
 static const std::string LABEL_KEY_QUERY = "$query.";
 static const std::string LABEL_KEY_CALLER_IP = "$caller_ip";
 static const std::string PATH_SBIN = "sbin";
+static const std::string DEFAULT_POLARIS_LOG_DIR = "/tmp/polaris";
 
 class LimitApiWrapper {
  public:
