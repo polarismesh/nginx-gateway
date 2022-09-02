@@ -12,6 +12,7 @@
 //
 
 #include "ngx_http_polaris_limit_module.h"
+#include "polaris/log.h"
 
 typedef struct {
     ngx_int_t                           enable;                             // 是否启用限流
@@ -420,8 +421,32 @@ rateLimiter:
     service: polaris.limiter
 )##";
 
+const char kPathSeparator =
+#ifdef _WIN32
+                            '\\';
+#else
+                            '/';
+#endif
+
+std::string resolveNgxLogDir(ngx_log_t *logger) {
+  ngx_str_t* filename = &(logger->file->name);
+  std::string filename_str = std::string(reinterpret_cast<char *>(filename->data), filename->len);
+  int pos = filename_str.find_last_of(kPathSeparator);
+  if (pos == -1) {
+    return std::string("");
+  }
+  return filename_str.substr(0, pos);
+}
+
 void LimitApiWrapper::Init(ngx_log_t *logger) {
   ngx_log_error(NGX_LOG_NOTICE, logger, 0, "[PolarisRateLimiting] start to init polaris limit api, polaris config %s", m_polaris_config.c_str());
+  std::string logDir = resolveNgxLogDir(logger);
+  if (logDir.size() == 0) {
+    logDir = DEFAULT_POLARIS_LOG_DIR;
+  }
+  ngx_log_error(NGX_LOG_NOTICE, logger, 0, "[PolarisRateLimiting] polaris logDir: %s", logDir.c_str());
+  polaris::SetLogDir(logDir);
+
   std::string err_msg("");
   m_limit = polaris::LimitApi::CreateFromString(m_polaris_config, err_msg);
   if (NULL == m_limit) {

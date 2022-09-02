@@ -33,6 +33,7 @@ folder_name=$(echo "nginx-gateway-release-${version}.${build_os}.${build_arch}" 
 echo "target name $folder_name"
 rm -rf ../$folder_name
 mkdir -p ../$folder_name
+mkdir -p /tmp/polaris
 
 pushd "$ngx_file_name"/
 chmod +x configure
