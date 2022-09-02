@@ -212,9 +212,9 @@ static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     if (!has_namespace) {
-      char *namespace_env_value = getenv(ENV_NAMESPACE.c_str());
+      const char *namespace_env_value = getenv(ENV_NAMESPACE.c_str());
       if (NULL != namespace_env_value) {
-          plcf->service_namespace = std::string(namespace_env_value);
+          plcf->service_namespace.assign(namespace_env_value);
       } else {
           plcf->service_namespace = DEFAULT_NAMESPACE;
       }
@@ -222,9 +222,9 @@ static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     if (!has_service) {
-      char *service_env_value = getenv(ENV_SERVICE.c_str());
+      const char *service_env_value = getenv(ENV_SERVICE.c_str());
       if (NULL != service_env_value) {
-          plcf->service_name = std::string(service_env_value);
+          plcf->service_name.assign(service_env_value);
       } else {
           plcf->service_name = DEFAULT_SERVICE;
       }
@@ -232,7 +232,7 @@ static char *ngx_http_polaris_limit_conf_set(ngx_conf_t *cf, ngx_command_t *cmd,
     }
 
     if (!has_enable) {
-      char *enable_env_value = getenv(ENV_RATELIMIT_ENABLE.c_str());
+      const char *enable_env_value = getenv(ENV_RATELIMIT_ENABLE.c_str());
       if (NULL != enable_env_value) {
           std::string enable_str = std::string(enable_env_value);
           plcf->enable = string2bool(enable_str) ? 1 : 0;
