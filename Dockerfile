@@ -34,7 +34,7 @@ RUN set -ex \
     && cp nginx/nginx.conf "$ngx_file_name"/conf/ \
     && chmod +x "$ngx_file_name"/configure \
     && cd "$ngx_file_name" \
-    && ./configure --prefix=/etc/nginx --add-module=../../source/nginx_polaris_limit_module --add-module=../polaris_client --with-stream --with-cpp=g++ \
+    && ./configure --prefix=/etc/nginx --user=root --add-module=../../source/nginx_polaris_limit_module --add-module=../polaris_client --with-stream --with-cpp=g++ \
     && make \
     && make install \
     && ln -sf /etc/nginx/sbin/nginx /usr/local/bin/nginx \
