@@ -12,7 +12,7 @@ Nginx网关是一个微服务网关。在原生Nginx的基础上，通过对接�
 
 ## 快速入门
 
-快速入门指南可以参考：[nginx网关快速入门](https://polarismesh.cn/zh/doc/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8/Nginx%E7%BD%91%E5%85%B3%E6%8E%A5%E5%85%A5.html#nginx%E7%BD%91%E5%85%B3%E6%8E%A5%E5%85%A5)
+快速入门指南可以参考：[nginx网关快速入门](https://polarismesh.cn/docs/%E4%BD%BF%E7%94%A8%E6%8C%87%E5%8D%97/%E7%BD%91%E5%85%B3/%E4%BD%BF%E7%94%A8nginx/)
 
 ## 编译指南
 
